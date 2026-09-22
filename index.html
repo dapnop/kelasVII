@@ -1,48 +1,230 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>INFORMATIKA VII</title>
-  <link rel="icon" href="https://mentariilmu.sch.id/wp-content/uploads/2025/02/Mentari-Ilmu-Integrated-Islamic-School_1.png" type="image/x-icon">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      font-family: sans-serif;
-    }
-    .iframe-container {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    .loader {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.2rem;
-      color: #666;
-      z-index: 10;
-    }
-  </style>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kuis Benar-Salah Informatika</title>
+<style>
+  :root { --benar:#1e8e5a; --salah:#c0392b; --ink:#1d2b36; --bg:#f4f7f6; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:12px 20px; background:#14532d; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  header h1 { font-size:1.1rem; margin:0; font-weight:600; }
+  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+  .card { background:var(--card); border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  #question { font-size:clamp(1.3rem,3vw,2.2rem); line-height:1.35; text-align:center; margin:6px 0; min-height:2.7em; display:flex; align-items:center; justify-content:center; }
+  .meta { display:flex; justify-content:space-between; align-items:center; font-weight:600; }
+  #timer { font-size:2rem; font-variant-numeric:tabular-nums; }
+  .stage { position:relative; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; }
+  video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+  .zone { position:absolute; top:0; bottom:0; z-index:2; pointer-events:none; }
+  #zoneLeft  { left:0; }
+  #zoneRight { right:0; }
+  #midline { position:absolute; top:0; bottom:0; width:0; border-left:4px dashed #fff; z-index:3; pointer-events:none; }
+  .zone-label { position:absolute; top:10px; padding:6px 18px; border-radius:20px; color:#fff; font-weight:800; font-size:1.3rem; z-index:4; pointer-events:none; }
+  #lblLeft { left:10px; } #lblRight { right:10px; }
+  #reveal { display:none; text-align:center; }
+  #reveal .verdict { font-size:1.8rem; font-weight:800; }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  button { border:0; border-radius:10px; padding:10px 18px; font-size:1rem; font-weight:600; cursor:pointer; background:#14532d; color:#fff; }
+  button.alt { background:#e3ebe7; color:var(--ink); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  #status { font-size:.9rem; color:#556; }
+  label { font-size:.9rem; }
+</style>
 </head>
 <body>
-  <div class="iframe-container">
-    <div class="loader" id="loader">Loading app...</div>
-    <iframe 
-      src="https://script.google.com/macros/s/AKfycbzREsLgy2-Z8nzCL7NxGmXWcvsaH6UIqfBPC4JTIO8y_Buc2-VtqIIBAtSpG-5qNX8/exec" 
-      title="JNCfy Web App"
-      onload="document.getElementById('loader').style.display='none';"
-      allowfullscreen>
-    </iframe>
+<header>
+  <h1>Kuis Benar-Salah Informatika</h1>
+  <span id="progress">Soal 0 / 0</span>
+</header>
+
+<main>
+  <div class="card">
+    <div class="meta"><span>Berdirilah di sisi jawabanmu!</span><span id="timer">--</span></div>
+    <div id="question">Tekan "Mulai Kamera" untuk memulai.</div>
   </div>
+
+  <div class="card">
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted></video>
+      <div class="zone" id="zoneLeft"></div>
+      <div class="zone" id="zoneRight"></div>
+      <div id="midline"></div>
+      <div class="zone-label" id="lblLeft"></div>
+      <div class="zone-label" id="lblRight"></div>
+    </div>
+  </div>
+
+  <div class="card" id="reveal">
+    <div class="verdict" id="verdict"></div>
+    <p id="explain"></p>
+  </div>
+
+  <div class="card controls">
+    <button id="btnCam">Mulai Kamera</button>
+    <select id="camSel" style="padding:9px;border-radius:10px;display:none"></select>
+    <button id="btnStart" disabled>Mulai Soal</button>
+    <button id="btnNext" class="alt" disabled>Soal Berikutnya</button>
+    <button id="btnSwap" class="alt">Tukar Sisi</button>
+    <label>Garis tengah:
+      <input type="range" id="split" min="20" max="80" value="50">
+    </label>
+    <label>Waktu (detik):
+      <input type="number" id="dur" value="15" min="5" max="60" style="width:60px">
+    </label>
+    <span id="status"></span>
+  </div>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var video = $('video');
+  var questions = [], idx = -1, timerId = null;
+  var benarOnLeft = true, roundActive = false;
+
+  function setStatus(t) { $('status').textContent = t; }
+
+  // ---------- Soal ----------
+  // Tempel URL /exec milik Bapak/Ibu di sini (tanpa tambahan apa pun di belakangnya)
+  var API_URL = 'PASTE_URL_EXEC_DI_SINI';
+  var CONTOH = [
+    { q: 'CPU sering disebut sebagai "otak" komputer.', a: true, e: 'CPU mengeksekusi instruksi program.' },
+    { q: 'RAM tetap menyimpan data saat komputer dimatikan.', a: false, e: 'RAM bersifat volatil.' }
+  ];
+  function setQuestions(q) {
+    questions = q;
+    $('progress').textContent = 'Soal 0 / ' + q.length;
+  }
+  if (API_URL.indexOf('http') === 0) {
+    fetch(API_URL + '?api=1')
+      .then(function (r) { return r.json(); })
+      .then(setQuestions)
+      .catch(function (e) { setQuestions(CONTOH); setStatus('Soal dari Sheet gagal dimuat, memakai soal contoh.'); });
+  } else {
+    setQuestions(CONTOH);
+    setStatus('URL /exec belum diisi, memakai soal contoh.');
+  }
+
+  // ---------- Kamera (hanya tampilan) ----------
+  var currentStream = null;
+
+  function pesanError(e) {
+    var n = e && e.name;
+    if (n === 'NotAllowedError') return 'Izin kamera ditolak. Klik ikon gembok/kamera di address bar > Kamera > Izinkan, lalu muat ulang (F5). Cek juga Windows: Privacy > Camera.';
+    if (n === 'NotFoundError') return 'Kamera tidak ditemukan. Periksa kabel/port USB.';
+    if (n === 'NotReadableError') return 'Kamera sedang dipakai aplikasi lain (Zoom/Meet/Teams). Tutup dulu, lalu coba lagi.';
+    if (n === 'OverconstrainedError') return 'Kamera terpilih tidak cocok. Pilih kamera lain pada daftar.';
+    return 'Kamera gagal (' + (n || 'error') + '): ' + (e && e.message);
+  }
+
+  async function fillCameraList() {
+    var devs = await navigator.mediaDevices.enumerateDevices();
+    var cams = devs.filter(function (d) { return d.kind === 'videoinput'; });
+    var sel = $('camSel');
+    sel.innerHTML = '';
+    cams.forEach(function (c, i) {
+      var o = document.createElement('option');
+      o.value = c.deviceId;
+      o.textContent = c.label || ('Kamera ' + (i + 1));
+      sel.appendChild(o);
+    });
+    sel.style.display = cams.length > 1 ? 'inline-block' : 'none';
+    if (currentStream) {
+      var id = currentStream.getVideoTracks()[0].getSettings().deviceId;
+      if (id) sel.value = id;
+    }
+  }
+
+  async function startCamera(deviceId) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('Browser tidak mendukung kamera. Gunakan Chrome atau Edge, dan buka berkas langsung (bukan dari WhatsApp/pratinjau).');
+      return;
+    }
+    if (currentStream) currentStream.getTracks().forEach(function (t) { t.stop(); });
+    var vc = deviceId ? { deviceId: { exact: deviceId } } : true;
+    try {
+      setStatus('Meminta izin kamera...');
+      currentStream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: false });
+      video.muted = true;
+      video.setAttribute('playsinline', '');
+      video.srcObject = currentStream;
+      video.onloadedmetadata = function () {
+        setStatus('Kamera aktif (' + video.videoWidth + 'x' + video.videoHeight + '). Jika layar hitam, pilih kamera lain pada daftar.');
+      };
+      await video.play();
+      $('btnStart').disabled = false;
+      $('btnCam').textContent = 'Ganti / Muat Ulang Kamera';
+      await fillCameraList();
+    } catch (e) {
+      setStatus(pesanError(e));
+    }
+  }
+
+  $('btnCam').onclick = function () { startCamera(); };
+  $('camSel').onchange = function () { startCamera($('camSel').value); };
+
+  // ---------- Sisi & garis tengah ----------
+  function applySides() {
+    var pct = $('split').value;
+    var L = benarOnLeft ? 'BENAR' : 'SALAH', R = benarOnLeft ? 'SALAH' : 'BENAR';
+    var cL = benarOnLeft ? '30,142,90' : '192,57,43';
+    var cR = benarOnLeft ? '192,57,43' : '30,142,90';
+    $('lblLeft').textContent = L;  $('lblRight').textContent = R;
+    $('lblLeft').style.background = 'rgb(' + cL + ')';
+    $('lblRight').style.background = 'rgb(' + cR + ')';
+    $('zoneLeft').style.width = pct + '%';
+    $('zoneLeft').style.background = 'rgba(' + cL + ',.22)';
+    $('zoneRight').style.width = (100 - pct) + '%';
+    $('zoneRight').style.background = 'rgba(' + cR + ',.22)';
+    $('midline').style.left = pct + '%';
+  }
+  $('split').oninput = applySides;
+  $('btnSwap').onclick = function () { if (!roundActive) { benarOnLeft = !benarOnLeft; applySides(); } };
+  applySides();
+
+  // ---------- Alur kuis ----------
+  $('btnStart').onclick = function () { idx = -1; $('btnStart').textContent = 'Mulai Soal'; nextQuestion(); };
+  $('btnNext').onclick = nextQuestion;
+
+  function nextQuestion() {
+    idx++;
+    if (idx >= questions.length) {
+      $('question').textContent = 'Kuis selesai. Alhamdulillah, terima kasih atas partisipasinya!';
+      $('timer').textContent = '--';
+      $('reveal').style.display = 'none';
+      $('btnNext').disabled = true; $('btnStart').disabled = false;
+      $('btnStart').textContent = 'Ulangi Kuis';
+      return;
+    }
+    roundActive = true;
+    $('reveal').style.display = 'none';
+    $('btnStart').disabled = true; $('btnNext').disabled = true; $('btnSwap').disabled = true;
+    $('progress').textContent = 'Soal ' + (idx + 1) + ' / ' + questions.length;
+    $('question').textContent = questions[idx].q;
+
+    var t = parseInt($('dur').value, 10) || 15;
+    $('timer').textContent = t;
+    clearInterval(timerId);
+    timerId = setInterval(function () {
+      t--; $('timer').textContent = Math.max(t, 0);
+      if (t <= 0) { clearInterval(timerId); finishRound(); }
+    }, 1000);
+  }
+
+  function finishRound() {
+    roundActive = false;
+    var q = questions[idx];
+    $('verdict').textContent = 'Jawaban: ' + (q.a ? 'BENAR' : 'SALAH');
+    $('verdict').style.color = q.a ? 'var(--benar)' : 'var(--salah)';
+    $('explain').textContent = q.e || '';
+    $('reveal').style.display = 'block';
+    $('btnNext').disabled = false; $('btnSwap').disabled = false;
+    $('btnNext').textContent = (idx + 1 >= questions.length) ? 'Selesai' : 'Soal Berikutnya';
+  }
+})();
+</script>
 </body>
 </html>
