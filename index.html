@@ -6,132 +6,77 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kuis Benar-Salah Informatika</title>
 <style>
-  :root {
-    --benar:#1e8e5a; --salah:#c0392b; --ink:#1d2b36;
-    --panel: rgba(10,18,14,.72);
-  }
+  :root { --benar:#1e8e5a; --salah:#c0392b; --ink:#1d2b36; --bg:#f4f7f6; --card:#fff; }
   * { box-sizing:border-box; }
-  html, body {
-    height:100%; margin:0; overflow:hidden; background:#000;
-    font-family:system-ui,Segoe UI,Roboto,sans-serif; color:#fff;
-  }
-
-  /* ---------- Panggung kamera, mengisi seluruh layar ---------- */
-  .stage {
-    position:fixed; inset:0; background:#000;
-  }
-  video {
-    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  }
+  body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:12px 20px; background:#14532d; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  header h1 { font-size:1.1rem; margin:0; font-weight:600; }
+  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+  .card { background:var(--card); border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  #question { font-size:clamp(1.3rem,3vw,2.2rem); line-height:1.35; text-align:center; margin:6px 0; min-height:2.7em; display:flex; align-items:center; justify-content:center; }
+  .meta { display:flex; justify-content:space-between; align-items:center; font-weight:600; }
+  #timer { font-size:2rem; font-variant-numeric:tabular-nums; }
+  .stage { position:relative; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; }
+  video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
   .zone { position:absolute; top:0; bottom:0; z-index:2; pointer-events:none; }
   #zoneLeft  { left:0; }
   #zoneRight { right:0; }
-  #midline { position:absolute; top:0; bottom:0; width:0; border-left:4px dashed rgba(255,255,255,.85); z-index:3; pointer-events:none; }
-  .zone-label {
-    position:absolute; top:14px; padding:7px 20px; border-radius:24px;
-    color:#fff; font-weight:800; font-size:clamp(1rem,2.4vw,1.4rem);
-    letter-spacing:.03em; z-index:4; pointer-events:none;
-    box-shadow:0 2px 10px rgba(0,0,0,.35);
-  }
-  #lblLeft { left:14px; } #lblRight { right:14px; }
-
-  /* ---------- Bilah atas: soal ---------- */
-  .bar-top {
-    position:fixed; top:0; left:0; right:0; z-index:10;
-    padding:12px 18px 22px;
-    background:linear-gradient(to bottom, rgba(0,0,0,.75), rgba(0,0,0,0));
-    display:flex; flex-direction:column; gap:6px;
-  }
-  .bar-top .row1 {
-    display:flex; justify-content:space-between; align-items:center;
-    font-size:.85rem; opacity:.9; font-weight:600;
-  }
-  #timer {
-    font-size:clamp(1.3rem,3vw,1.8rem); font-weight:800;
-    font-variant-numeric:tabular-nums; line-height:1;
-  }
-  #question {
-    font-size:clamp(1.15rem,2.6vw,1.9rem); line-height:1.3; text-align:center;
-    font-weight:700; text-shadow:0 2px 8px rgba(0,0,0,.6);
-    max-width:900px; margin:0 auto;
-  }
-
-  /* ---------- Bilah bawah: kunci jawaban + kontrol ---------- */
-  .bar-bottom {
-    position:fixed; left:0; right:0; bottom:0; z-index:10;
-    background:linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.15) 80%, rgba(0,0,0,0));
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));
-    display:flex; flex-direction:column; gap:8px;
-  }
-
+  #midline { position:absolute; top:0; bottom:0; width:0; border-left:4px dashed #fff; z-index:3; pointer-events:none; }
+  .zone-label { position:absolute; top:10px; padding:6px 18px; border-radius:20px; color:#fff; font-weight:800; font-size:1.3rem; z-index:4; pointer-events:none; }
+  #lblLeft { left:10px; } #lblRight { right:10px; }
   #reveal { display:none; text-align:center; }
-  #reveal .verdict { font-size:clamp(1.2rem,2.6vw,1.7rem); font-weight:800; }
-  #reveal #explain { margin:2px 0 0; font-size:.92rem; opacity:.9; max-width:700px; margin-inline:auto; }
-
-  .controls {
-    display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center;
-  }
-  .controls.compact { font-size:.85rem; }
-  button {
-    border:0; border-radius:10px; padding:9px 16px; font-size:.95rem; font-weight:700;
-    cursor:pointer; background:var(--benar); color:#fff; white-space:nowrap;
-  }
-  button.alt { background:rgba(255,255,255,.16); color:#fff; }
-  button.alt:hover { background:rgba(255,255,255,.26); }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  select, input[type=number] {
-    border:0; border-radius:8px; padding:8px 10px; font-size:.9rem;
-    background:rgba(255,255,255,.16); color:#fff;
-  }
-  #camSel { max-width:220px; }
-  select option { color:#111; }
-  label { font-size:.8rem; display:flex; align-items:center; gap:6px; opacity:.9; }
-  input[type=range] { width:100px; }
-  #status { font-size:.78rem; opacity:.85; text-align:center; min-height:1.1em; }
-
-  /* Sembunyikan panel kontrol teknis otomatis begitu soal dimulai, agar layar lega */
-  body.round-active .controls.setup { display:none; }
+  #reveal .verdict { font-size:1.8rem; font-weight:800; }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  button { border:0; border-radius:10px; padding:10px 18px; font-size:1rem; font-weight:600; cursor:pointer; background:#14532d; color:#fff; }
+  button.alt { background:#e3ebe7; color:var(--ink); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  #status { font-size:.9rem; color:#556; }
+  label { font-size:.9rem; }
 </style>
 </head>
 <body>
+<header>
+  <h1>Kuis Benar-Salah Informatika</h1>
+  <span id="progress">Soal 0 / 0</span>
+</header>
 
-<div class="stage" id="stage">
-  <video id="video" playsinline muted></video>
-  <div class="zone" id="zoneLeft"></div>
-  <div class="zone" id="zoneRight"></div>
-  <div id="midline"></div>
-  <div class="zone-label" id="lblLeft"></div>
-  <div class="zone-label" id="lblRight"></div>
-</div>
-
-<div class="bar-top">
-  <div class="row1">
-    <span id="progress">Soal 0 / 0</span>
-    <span id="timer">--</span>
+<main>
+  <div class="card">
+    <div class="meta"><span>Berdirilah di sisi jawabanmu!</span><span id="timer">--</span></div>
+    <div id="question">Tekan "Mulai Kamera" untuk memulai.</div>
   </div>
-  <div id="question">Tekan &quot;Mulai Kamera&quot; untuk memulai.</div>
-</div>
 
-<div class="bar-bottom">
-  <div id="reveal">
+  <div class="card">
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted></video>
+      <div class="zone" id="zoneLeft"></div>
+      <div class="zone" id="zoneRight"></div>
+      <div id="midline"></div>
+      <div class="zone-label" id="lblLeft"></div>
+      <div class="zone-label" id="lblRight"></div>
+    </div>
+  </div>
+
+  <div class="card" id="reveal">
     <div class="verdict" id="verdict"></div>
     <p id="explain"></p>
   </div>
 
-  <div class="controls">
+  <div class="card controls">
+    <button id="btnCam">Mulai Kamera</button>
+    <select id="camSel" style="padding:9px;border-radius:10px;display:none"></select>
     <button id="btnStart" disabled>Mulai Soal</button>
     <button id="btnNext" class="alt" disabled>Soal Berikutnya</button>
     <button id="btnSwap" class="alt">Tukar Sisi</button>
+    <label>Garis tengah:
+      <input type="range" id="split" min="20" max="80" value="50">
+    </label>
+    <label>Waktu (detik):
+      <input type="number" id="dur" value="15" min="5" max="60" style="width:60px">
+    </label>
+    <span id="status"></span>
   </div>
-
-  <div class="controls setup compact">
-    <button id="btnCam">Mulai Kamera</button>
-    <select id="camSel" style="display:none"></select>
-    <label>Garis tengah <input type="range" id="split" min="20" max="80" value="50"></label>
-    <label>Waktu (dtk) <input type="number" id="dur" value="15" min="5" max="60" style="width:56px"></label>
-  </div>
-  <div id="status"></div>
-</div>
+</main>
 
 <script>
 (function () {
@@ -146,20 +91,15 @@
   // Tempel URL /exec milik Bapak/Ibu di sini (tanpa tambahan apa pun di belakangnya)
   var API_URL = 'https://script.google.com/macros/s/AKfycbzc7nuIBPz5bTcoqDucDpAPgCUrbQBzozPPxxXOU6gHTIvNHq-7RWdAkbT4XLsHXTbn/exec';
   var CONTOH = [
-    { q: 'Sapi minum susu', a: false, e: 'Minum Air' },
-    { q: '1 + 1 adalah 2!', a: false, e: ''},
-	{ q: 'Sapi makan rumput', a: true, e: ''},
-	{ q: 'Buah pisang sebenarnya adalah jenis sayuran', a: false, e: 'Pisang termasuk buah buahan'},
-	{ q: 'Mentari Ilmu berdiri tahun 2009', a: true, e: ''},
-	{ q: '1kg besi sama berat dengan 1kg kapas', a: true, e: ''},
+    { q: 'CPU sering disebut sebagai "otak" komputer.', a: true, e: 'CPU mengeksekusi instruksi program.' },
+    { q: 'RAM tetap menyimpan data saat komputer dimatikan.', a: false, e: 'RAM bersifat volatil.' }
   ];
   function setQuestions(q) {
     questions = q;
     $('progress').textContent = 'Soal 0 / ' + q.length;
   }
   if (API_URL.indexOf('http') === 0) {
-    var bust = (API_URL.indexOf('?') === -1 ? '?' : '&') + 'api=1&t=' + Date.now();
-    fetch(API_URL + bust, { cache: 'no-store' })
+    fetch(API_URL + '?api=1')
       .then(function (r) { return r.json(); })
       .then(setQuestions)
       .catch(function (e) { setQuestions(CONTOH); setStatus('Soal dari Sheet gagal dimuat, memakai soal contoh.'); });
@@ -181,31 +121,21 @@
   }
 
   async function fillCameraList() {
-    try {
-      var devs = await navigator.mediaDevices.enumerateDevices();
-      var cams = devs.filter(function (d) { return d.kind === 'videoinput'; });
-      var sel = $('camSel');
-      var prevValue = sel.value;
-      sel.innerHTML = '';
-      if (!cams.length) { sel.style.display = 'none'; return; }
-      cams.forEach(function (c, i) {
-        var o = document.createElement('option');
-        o.value = c.deviceId;
-        o.textContent = c.label || ('Kamera ' + (i + 1));
-        sel.appendChild(o);
-      });
-      sel.style.display = 'inline-block';
-      var activeId = currentStream && currentStream.getVideoTracks()[0].getSettings().deviceId;
-      if (activeId) sel.value = activeId;
-      else if (prevValue) sel.value = prevValue;
-    } catch (e) {
-      // enumerateDevices bisa gagal sebelum izin diberikan di sebagian browser; abaikan.
+    var devs = await navigator.mediaDevices.enumerateDevices();
+    var cams = devs.filter(function (d) { return d.kind === 'videoinput'; });
+    var sel = $('camSel');
+    sel.innerHTML = '';
+    cams.forEach(function (c, i) {
+      var o = document.createElement('option');
+      o.value = c.deviceId;
+      o.textContent = c.label || ('Kamera ' + (i + 1));
+      sel.appendChild(o);
+    });
+    sel.style.display = cams.length > 1 ? 'inline-block' : 'none';
+    if (currentStream) {
+      var id = currentStream.getVideoTracks()[0].getSettings().deviceId;
+      if (id) sel.value = id;
     }
-  }
-  // Coba tampilkan daftar kamera sejak halaman dibuka, sebelum tombol ditekan.
-  fillCameraList();
-  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-    navigator.mediaDevices.addEventListener('devicechange', fillCameraList);
   }
 
   async function startCamera(deviceId) {
@@ -214,8 +144,7 @@
       return;
     }
     if (currentStream) currentStream.getTracks().forEach(function (t) { t.stop(); });
-    var picked = deviceId || $('camSel').value;
-    var vc = picked ? { deviceId: { exact: picked } } : true;
+    var vc = deviceId ? { deviceId: { exact: deviceId } } : true;
     try {
       setStatus('Meminta izin kamera...');
       currentStream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: false });
@@ -223,12 +152,12 @@
       video.setAttribute('playsinline', '');
       video.srcObject = currentStream;
       video.onloadedmetadata = function () {
-        setStatus('Kamera aktif (' + video.videoWidth + 'x' + video.videoHeight + '). Jika layar hitam/salah, pilih kamera lain pada daftar.');
+        setStatus('Kamera aktif (' + video.videoWidth + 'x' + video.videoHeight + '). Jika layar hitam, pilih kamera lain pada daftar.');
       };
       await video.play();
       $('btnStart').disabled = false;
       $('btnCam').textContent = 'Ganti / Muat Ulang Kamera';
-      await fillCameraList(); // label kamera baru tersedia lengkap setelah izin diberikan
+      await fillCameraList();
     } catch (e) {
       setStatus(pesanError(e));
     }
@@ -263,7 +192,6 @@
   function nextQuestion() {
     idx++;
     if (idx >= questions.length) {
-      document.body.classList.remove('round-active');
       $('question').textContent = 'Kuis selesai. Alhamdulillah, terima kasih atas partisipasinya!';
       $('timer').textContent = '--';
       $('reveal').style.display = 'none';
@@ -272,7 +200,6 @@
       return;
     }
     roundActive = true;
-    document.body.classList.add('round-active');
     $('reveal').style.display = 'none';
     $('btnStart').disabled = true; $('btnNext').disabled = true; $('btnSwap').disabled = true;
     $('progress').textContent = 'Soal ' + (idx + 1) + ' / ' + questions.length;
@@ -289,7 +216,6 @@
 
   function finishRound() {
     roundActive = false;
-    document.body.classList.remove('round-active');
     var q = questions[idx];
     $('verdict').textContent = 'Jawaban: ' + (q.a ? 'BENAR' : 'SALAH');
     $('verdict').style.color = q.a ? 'var(--benar)' : 'var(--salah)';
